@@ -53,7 +53,7 @@ static dev_t accdet_devno;
 static int pre_status;
 static int pre_state_swctrl;
 static int accdet_status = PLUG_OUT;
-static int cable_type;
+volatile int cable_type; /* used by mt_soc_pcm_dl1_i2s0Dl1.c to fix audio phase when on speaker */
 #ifdef CONFIG_ACCDET_PIN_RECOGNIZATION
 /*add for new feature PIN recognition*/
 static int cable_pin_recognition;
