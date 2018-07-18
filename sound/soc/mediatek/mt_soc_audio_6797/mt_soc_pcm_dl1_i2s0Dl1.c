@@ -550,6 +550,28 @@ static int mtk_pcm_I2S0dl1_start(struct snd_pcm_substream *substream)
 	return 0;
 }
 
+
+/*
+ * If now accessory is detected, flip the phase of one audio channel. Format is
+ * assumed to be S32 here - works for me but needs fixing when other formats
+ * are used.
+ */
+
+static void hack_phase(void *buf, size_t len)
+{
+	extern int cable_type;
+
+	if (cable_type == 0) {  /* NO_DEVICE */
+		s32 *p = (s32 *)buf;
+		int i;
+		for (i=0; i<len; i+=8) {
+			*p = -*p;
+			p += 2;
+		}
+	}
+}
+
+
 static int mtk_pcm_I2S0dl1_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	/* pr_warn("mtk_pcm_I2S0dl1_trigger cmd = %d\n", cmd); */
@@ -638,6 +660,8 @@ static int mtk_pcm_I2S0dl1_copy(struct snd_pcm_substream *substream,
 				}
 			}
 
+			hack_phase(Afe_Block->pucVirtBufAddr + Afe_WriteIdx_tmp, copy_size);
+
 			spin_lock_irqsave(&auddrv_I2S0dl1_lock, flags);
 			Afe_Block->u4DataRemained += copy_size;
 			Afe_Block->u4WriteIdx = Afe_WriteIdx_tmp + copy_size;
@@ -670,6 +694,9 @@ static int mtk_pcm_I2S0dl1_copy(struct snd_pcm_substream *substream,
 					return -1;
 				}
 			}
+
+			hack_phase(Afe_Block->pucVirtBufAddr + Afe_WriteIdx_tmp, size_1);
+
 			spin_lock_irqsave(&auddrv_I2S0dl1_lock, flags);
 			Afe_Block->u4DataRemained += size_1;
 			Afe_Block->u4WriteIdx = Afe_WriteIdx_tmp + size_1;
@@ -693,6 +720,9 @@ static int mtk_pcm_I2S0dl1_copy(struct snd_pcm_substream *substream,
 					return -1;
 				}
 			}
+
+			hack_phase(Afe_Block->pucVirtBufAddr + Afe_WriteIdx_tmp, size_2);
+
 			spin_lock_irqsave(&auddrv_I2S0dl1_lock, flags);
 
 			Afe_Block->u4DataRemained += size_2;
